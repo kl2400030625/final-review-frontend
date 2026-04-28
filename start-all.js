@@ -12,6 +12,8 @@ const candidates = [
   path.join(root, 'backend'),
   path.join(root, 'server'),
   path.join(root, 'api'),
+  path.join(root, '..', 'final_review_backend'),
+  path.join(root, '..', 'final_review_backend', 'self-learning-backend'),
   path.join(root, '..', 'backend'),
   path.join(root, '..', 'server'),
   path.join(root, '..', 'api'),
@@ -20,7 +22,8 @@ const candidates = [
 
 function findBackend() {
   for (const c of candidates) {
-    if (exists(c) && exists(path.join(c, 'package.json'))) return c;
+    if (!exists(c)) continue;
+    if (exists(path.join(c, 'package.json')) || exists(path.join(c, 'pom.xml'))) return c;
   }
   return null;
 }
@@ -57,16 +60,30 @@ async function main() {
 
   if (backendDir) {
     console.log('Starting backend at', backendDir);
-    // choose recommended start script
-    const pkg = JSON.parse(fs.readFileSync(path.join(backendDir, 'package.json'), 'utf8'));
-    const script = pkg.scripts && (pkg.scripts.dev ? ['run','dev'] : (pkg.scripts.start ? ['start'] : null));
-    if (script) {
-      runCmd('npm', script, backendDir);
+    if (exists(path.join(backendDir, 'package.json'))) {
+      // choose recommended Node.js start script
+      const pkg = JSON.parse(fs.readFileSync(path.join(backendDir, 'package.json'), 'utf8'));
+      const script = pkg.scripts && (pkg.scripts.dev ? ['run', 'dev'] : (pkg.scripts.start ? ['start'] : null));
+      if (script) {
+        runCmd('npm', script, backendDir);
+      } else if (exists(path.join(backendDir, 'server.js'))) {
+        runCmd('node', ['server.js'], backendDir);
+      } else if (exists(path.join(backendDir, 'index.js'))) {
+        runCmd('node', ['index.js'], backendDir);
+      } else {
+        console.warn('No Node backend start script found. Please start it manually.');
+      }
+    } else if (exists(path.join(backendDir, 'pom.xml'))) {
+      // Spring Boot backend
+      if (process.platform === 'win32' && exists(path.join(backendDir, 'mvnw.cmd'))) {
+        runCmd('mvnw.cmd', ['spring-boot:run'], backendDir);
+      } else if (exists(path.join(backendDir, 'mvnw'))) {
+        runCmd('./mvnw', ['spring-boot:run'], backendDir);
+      } else {
+        runCmd('mvn', ['spring-boot:run'], backendDir);
+      }
     } else {
-      // fallback to node server.js or index.js
-      if (exists(path.join(backendDir, 'server.js'))) runCmd('node', ['server.js'], backendDir);
-      else if (exists(path.join(backendDir, 'index.js'))) runCmd('node', ['index.js'], backendDir);
-      else console.warn('No start script found for backend. Please start it manually.');
+      console.warn('No supported backend project found. Please start it manually.');
     }
   } else {
     console.log('No backend detected in common locations. If you have a backend, place it in `./backend` or `./server` or `../backend`.');
