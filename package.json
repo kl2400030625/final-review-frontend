@@ -5,5 +5,4 @@
     "dev": "node ./start-all.js",
     "install-all": "node ./start-all.js --install-only"
   },
-  
 }
