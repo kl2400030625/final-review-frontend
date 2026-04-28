@@ -1,0 +1,11 @@
+{
+  "name": "final-review-frontend-root",
+  "private": true,
+  "scripts": {
+    "dev": "node ./start-all.js",
+    "install-all": "node ./start-all.js --install-only"
+  },
+  "devDependencies": {
+    "cross-spawn": "^8.1.0"
+  }
+}
